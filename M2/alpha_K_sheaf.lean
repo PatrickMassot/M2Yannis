@@ -6,54 +6,49 @@ import M2.alpha
 open CategoryTheory CategoryTheory.Limits TopologicalSpace TopologicalSpace.Compacts Opposite TopCat TopCat.Presheaf
 open ZeroObject
 
-variable (X) [TopologicalSpace X] [T2Space X]
-variable (G:Ksheaf.{0} X) (F:Sheaf Ab.{0} (of X))
+variable {X} [TopologicalSpace X] [T2Space X]
+variable (G:Ksheaf X) (F:Sheaf Ab (of X))
 
 noncomputable section
 
-theorem KshToSh: @Presheaf.IsSheaf _ _ (of X) ((AlphaDownStar X).obj (G.carrier):Presheaf _ (of X)):= by
+theorem KshToSh: Presheaf.IsSheaf (X := of X) ((AlphaDownStar X).obj G.carrier) := by
   apply (isSheaf_iff_isSheafOpensLeCover _).2
-  unfold IsSheafOpensLeCover
   intro i U
-  simp
-  apply Nonempty.intro
-  apply @IsLimit.mk _ _ _ _ _ _ _ _ _
+  constructor
+  constructor
+  · sorry
+  · sorry
+  · intro s
+    dsimp only [coe_of, Functor.mapCone_pt, Cocone.op_pt]
+    apply CategoryStruct.comp _
+    · apply limit.lift
+      use s.pt
+      constructor
+      · sorry
+      · intro K
+        simp
+        unfold GK
+        simp
+        let f:= s.π.app sorry
+        unfold AlphaDownStar AlphaDownStarG at f
+        simp at f
 
-  intro s
-  unfold SheafCondition.opensLeCoverCocone AlphaDownStar AlphaDownStarG --iSup
-  simp
-
-  apply CategoryStruct.comp _
-
-  apply limit.lift
-  apply Cone.mk s.pt
-  apply NatTrans.mk
-  sorry
-  intro K
-  simp
-  unfold GK
-  simp
-  let f:= s.π.app sorry
-  unfold AlphaDownStar AlphaDownStarG at f
-  simp at f
-
-  sorry
-  repeat sorry
+        sorry
+    · sorry
 
 
 
 def shAlphaDownStarF : Sheaf Ab (of X) where
-  val:= (AlphaDownStar X).obj (G.carrier)
-  cond := (KshToSh X G)
+  val := (AlphaDownStar X).obj G.carrier
+  cond := KshToSh G
 
-
-def shAlphaDownStar : (Ksheaf X) ⥤ Sheaf Ab (of X) where
-  obj G:= shAlphaDownStarF X G
-  map f:= Sheaf.Hom.mk ((AlphaDownStar X).map f)
-  map_id:= by
-    intro _
-    apply Sheaf.Hom.ext
-    apply (AlphaDownStar X).map_id
+def shAlphaDownStar : Ksheaf X ⥤ Sheaf Ab (of X) where
+  obj G:= shAlphaDownStarF G
+  map f:= ⟨(AlphaDownStar X).map f⟩
+  map_id F := by
+    change (_ : Sheaf.Hom _ _) = _
+    ext1
+    exact (AlphaDownStar X).map_id _
   map_comp:= by
     intro _ _ _ _ _
     apply Sheaf.Hom.ext
@@ -96,7 +91,7 @@ def AdjShAlphaStar: (shAlphaUpStar X ) ⊣ (shAlphaDownStar X ) := by
 #check IsIso ((Adjunction.unit (AdjShAlphaStar X)).app F)
 
 
-theorem IsoAlphaCoUnit :IsIso ((AdjShAlphaStar X).unit.app F):= by
+instance IsoAlphaCoUnit : IsIso ((AdjShAlphaStar X).unit.app F):= by
   --apply @Presheaf.isIso_of_stalkFunctor_map_iso
   --apply asIso
 
@@ -108,7 +103,7 @@ theorem IsoAlphaCoUnit :IsIso ((AdjShAlphaStar X).unit.app F):= by
 
 #check (AdjShAlphaStar X).counit.app G
 
-theorem IsoAlphaUnit :IsIso ((AdjShAlphaStar X).counit.app G):= by
+instance IsoAlphaUnit : IsIso ((AdjShAlphaStar X).counit.app G):= by
   --unfold AdjShAlphaStar AlphaDownStar
   --simp
 
@@ -117,11 +112,6 @@ theorem IsoAlphaUnit :IsIso ((AdjShAlphaStar X).counit.app G):= by
   sorry
 
 
-set_option pp.universes true
-def KshIsoSh: (Sheaf Ab.{0} (of X)) ≃  (Ksheaf.{0} X) := by
+def KshIsoSh: (Sheaf Ab (of X)) ≌ (Ksheaf X) :=
+  (AdjShAlphaStar X).toEquivalence
 
-   apply @Adjunction.toEquivalence _ _ _ _  _  _ (AdjShAlphaStar X) (IsoAlphaCoUnit X) (IsoAlphaUnit X)
-
-
-  --sorry
-  --pourquoi ça ne convient pas? problème d'univers

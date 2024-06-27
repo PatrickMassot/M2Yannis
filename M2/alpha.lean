@@ -4,7 +4,7 @@ import M2.Ksheaves
 
 open CategoryTheory CategoryTheory.Limits TopologicalSpace TopologicalSpace.Compacts Opposite
 
-variable (X) [TopologicalSpace X] --[T2Space X]
+variable {X} [TopologicalSpace X] --[T2Space X]
 
 --α^*
 noncomputable section
@@ -12,9 +12,9 @@ variable (K:Compacts X)
 variable (F:(Opens X)ᵒᵖ⥤ Ab)
 variable (P:Opens X → Prop)-- true pour le alpha normal et IsCompact (closure U.carrier) pour la version relativement compacte
 
-def KsubU : Set (Opens X) := fun (U:Opens X) => (K.carrier ⊆ U.carrier) ∧ P U
+def KsubU : Set (Opens X) := fun U : Opens X ↦ K.carrier ⊆ U.carrier ∧ P U
 
-def KsubU_cat : Type := FullSubcategory (KsubU X K P)
+def KsubU_cat : Type := FullSubcategory (KsubU K P)
 
 /-instance : SetLike (KsubU_cat X K P) X where
   coe U:= U.obj.carrier
@@ -25,49 +25,35 @@ def KsubU_cat : Type := FullSubcategory (KsubU X K P)
     exact h-/
 
 
-instance : Category (KsubU_cat X K P) := FullSubcategory.category (KsubU X K P)
+instance : Category (KsubU_cat K P) := FullSubcategory.category (KsubU K P)
 
-def FU : (KsubU_cat X K P)ᵒᵖ ⥤ Ab := Functor.comp (fullSubcategoryInclusion (KsubU X K P)).op  F
+def FU : (KsubU_cat K P)ᵒᵖ ⥤ Ab := (fullSubcategoryInclusion <| KsubU K P).op.comp  F
 
-variable (K1 K2:Compacts X) (f:K1⟶ K2)
+variable {K₁ K₂ : Compacts X} (f : K₁ ⟶ K₂)
 
-def K1subK2subU : (KsubU_cat X K2 P) ⥤ (KsubU_cat X K1 P) where
-  obj W:=(⟨W.obj,Set.Subset.trans (leOfHom f) W.property.1,W.property.2⟩:KsubU_cat X K1 P)
-  map := by
-    intro U V F
-    exact homOfLE (leOfHom F)
+def K₁subK₂subU : (KsubU_cat K₂ P) ⥤ (KsubU_cat K₁ P) where
+  obj W := ⟨W.obj, Set.Subset.trans (leOfHom f) W.property.1, W.property.2⟩
+  map {U V} F := homOfLE (leOfHom F)
 
-def K1subK2natTrans : (FU X K2 F P) ⟶  (Functor.comp (K1subK2subU X P K1 K2 f).op (FU X K1 F P)) where
-  app W := by
-    exact 𝟙 _
+def K₁subK₂natTrans : FU K₂ F P ⟶  (Functor.comp (K₁subK₂subU P f).op (FU K₁ F P)) where
+  app W := 𝟙 _
 
 def AlphaUpStarF :(Compacts X)ᵒᵖ ⥤ Ab  where
-  obj K := colimit (FU X K.unop F P)
-  map f:= colimMap (K1subK2natTrans X F P _ _ f.unop) ≫ (colimit.pre (FU X _ F P) (K1subK2subU X P _  _ f.unop).op)
-  map_id := by
-    intro _
-    apply colimit.hom_ext
-    simp
-    intro _
-    rfl
-  map_comp := by
-    intro _ _ _ _ _
-    simp
-    apply colimit.hom_ext
-    simp
-    intro _
-    rfl
+  obj K := colimit (FU K.unop F P)
+  map f:= colimMap (K₁subK₂natTrans F P f.unop) ≫ (colimit.pre (FU _ F P) (K₁subK₂subU P f.unop).op)
+  map_id := by aesop (add safe apply colimit.hom_ext)
+  map_comp := by aesop (add safe apply colimit.hom_ext)
 
-variable (F1:(Opens X)ᵒᵖ⥤ Ab) (F2:(Opens X)ᵒᵖ⥤ Ab) (τ :F1 ⟶ F2)
+variable {F1 F2 : (Opens X)ᵒᵖ ⥤ Ab} (τ : F1 ⟶ F2)
 
-def τres :(FU X K F1 P)⟶ (FU X K F2 P) where
+def τres : FU K F1 P ⟶ FU K F2 P where
   app U:= τ.app (op (U.unop.obj))
   naturality := by
     unfold FU
     simp [τ.naturality]
 
-def AlphaUpStarTau : (AlphaUpStarF X F1 P) ⟶ (AlphaUpStarF X F2 P) where
-  app K := colimMap (τres X K.unop P F1 F2 τ)
+def AlphaUpStarTau : AlphaUpStarF F1 P ⟶ AlphaUpStarF F2 P where
+  app K := colimMap (τres K.unop P τ)
   naturality := by
     intro _ _ _
     apply colimit.hom_ext
@@ -76,9 +62,9 @@ def AlphaUpStarTau : (AlphaUpStarF X F1 P) ⟶ (AlphaUpStarF X F2 P) where
     simp
     rfl
 
-def AlphaUpStarP :((Opens X)ᵒᵖ ⥤ Ab)⥤ ((Compacts X)ᵒᵖ ⥤ Ab) where
-  obj F:= AlphaUpStarF X F P
-  map τ := AlphaUpStarTau X P _ _ τ
+def AlphaUpStarP :((Opens X)ᵒᵖ ⥤ Ab) ⥤ ((Compacts X)ᵒᵖ ⥤ Ab) where
+  obj F:= AlphaUpStarF F P
+  map τ := AlphaUpStarTau P τ
   map_id:= by
     intro F
     apply NatTrans.ext
@@ -99,9 +85,11 @@ def AlphaUpStarP :((Opens X)ᵒᵖ ⥤ Ab)⥤ ((Compacts X)ᵒᵖ ⥤ Ab) where
     unfold AlphaUpStarTau τres
     simp
 
+variable (X)
+
 def trueCond: Opens X → Prop := (fun (_:Opens X) => true)
 
-def AlphaUpStar : ((Opens X)ᵒᵖ ⥤ Ab)⥤ ((Compacts X)ᵒᵖ ⥤ Ab) := AlphaUpStarP _ (trueCond X)
+def AlphaUpStar : ((Opens X)ᵒᵖ ⥤ Ab)⥤ ((Compacts X)ᵒᵖ ⥤ Ab) := AlphaUpStarP (trueCond X)
 
 end
 
@@ -111,27 +99,26 @@ variable (U:Opens X) (G:(Compacts X)ᵒᵖ ⥤ Ab)
 
 def UsupK : Set (Compacts X) := fun (K:Compacts X) => (K.carrier ⊆ U.carrier) --∧ IsCompact (closure U.carrier) peut être?
 
-def UsupK_cat : Type := FullSubcategory (UsupK X U)
+def UsupK_cat : Type := FullSubcategory (UsupK U)
 
-instance : Category (UsupK_cat X U) := FullSubcategory.category (UsupK X U)
+instance : Category (UsupK_cat U) := FullSubcategory.category (UsupK U)
 
-def GK : (UsupK_cat X U)ᵒᵖ ⥤ Ab := Functor.comp (fullSubcategoryInclusion (UsupK X U)).op  G
+def GK : (UsupK_cat U)ᵒᵖ ⥤ Ab := Functor.comp (fullSubcategoryInclusion (UsupK U)).op  G
 
-variable (U1 U2 :Opens X) (f:U1⟶ U2)
+variable {U1 U2 : Opens X} (f : U1 ⟶ U2)
 
-def U2supU1supK : (UsupK_cat X U1) ⥤ (UsupK_cat X U2) where
-  obj W:=(⟨W.obj,Set.Subset.trans W.property (leOfHom f)⟩:UsupK_cat X U2)
+def U2supU1supK : (UsupK_cat U1) ⥤ (UsupK_cat U2) where
+  obj W:=(⟨W.obj,Set.Subset.trans W.property (leOfHom f)⟩ : UsupK_cat U2)
   map := by
     intro _ _ F
     exact homOfLE (leOfHom F)
 
-def U2supU1natTrans : (GK X U1 G) ⟶  (Functor.comp (U2supU1supK X U1 U2 f).op (GK X U2 G)) where
-  app W := by
-    exact 𝟙 _
+def U2supU1natTrans : (GK U1 G) ⟶  (Functor.comp (U2supU1supK f).op (GK U2 G)) where
+  app W := 𝟙 _
 
 def AlphaDownStarG :(Opens X)ᵒᵖ ⥤ Ab  where
-  obj U := limit (GK X U.unop G)
-  map f:= (limit.pre (GK X _ G) (U2supU1supK X _ _ f.unop).op) ≫ limMap (U2supU1natTrans X G _ _ f.unop)
+  obj U := limit (GK U.unop G)
+  map f:= (limit.pre (GK G) (U2supU1supK f.unop).op) ≫ limMap (U2supU1natTrans G f.unop)
   map_id := by
     intro _
     apply limit.hom_ext
@@ -213,7 +200,7 @@ def ConeFtoAG_NT: (Functor.const (UsupK_cat X U)ᵒᵖ).obj (F.obj { unop := U }
     unfold GK
     simp
     rw [← (τ.naturality _)]
-    unfold AlphaUpStar AlphaUpStarP AlphaUpStarF K1subK2natTrans K1subK2subU
+    unfold AlphaUpStar AlphaUpStarP AlphaUpStarF K₁subK₂natTrans K₁subK₂subU
     simp
 
 def ConeFtoAG :Cone (GK X U G) where
@@ -259,7 +246,7 @@ def AFtoG : ( (AlphaUpStar X).obj F ⟶  G) where
     intro K L f
     apply colimit.hom_ext
     intro V
-    unfold AlphaUpStar AlphaUpStarP AlphaUpStarF  K1subK2natTrans K1subK2subU CoconeAFtoG CoconeAFtoG_NT
+    unfold AlphaUpStar AlphaUpStarP AlphaUpStarF  K₁subK₂natTrans K₁subK₂subU CoconeAFtoG CoconeAFtoG_NT
     simp
     rw [← limit.w _ _]
     rfl
